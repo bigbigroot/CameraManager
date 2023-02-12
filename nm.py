@@ -100,8 +100,7 @@ class DBusNetworkManager:
             m(ac_path)
             return True
         except Exception as exp:
-            print "deactivate_connection() exception :: %s" % exp
-
+            print("deactivate_connection() exception :: %s" % exp) 
         return False
 
 
@@ -143,7 +142,7 @@ class DBusNetworkManager:
         # getting all ppoperties like Ssid, Strength, HwAddress etc.
         props = m("org.freedesktop.NetworkManager.AccessPoint")
         for k,v in props.iteritems():
-            print k,v
+            print (k,v)
 
         return props
 
@@ -202,7 +201,7 @@ class DBusNetworkManager:
         # method to obtain a list of all devices, and then iterate over these
         # devices to check if DeviceType property equals NM_DEVICE_TYPE_WIFI (2).
         device_path = self.get_wifi_device_path()
-        print "wireless device path: ", device_path
+        print ("wireless device path: ", device_path)
 
         # Connect to the device's Wireless interface and obtain list of access points.
         device = dbus.Interface(bus.get_object("org.freedesktop.NetworkManager",
@@ -221,7 +220,7 @@ class DBusNetworkManager:
 
             # Returned SSID is a list of ASCII values. Let's convert it to a proper string.
             str_ap_ssid = "".join(chr(i) for i in ap_ssid)
-            print ap_path, ": SSID =", str_ap_ssid
+            print (ap_path, ": SSID =", str_ap_ssid)
 
             if str_ap_ssid == ssid:
                 our_ap_path = ap_path
@@ -230,7 +229,7 @@ class DBusNetworkManager:
         if not our_ap_path:
             return False, "Access Point not found for SSID '%s'" % ssid
 
-        print "Access Point for SSID '%s' is '%s' " %  (ssid, our_ap_path)
+        print ("Access Point for SSID '%s' is '%s' " %  (ssid, our_ap_path))
 
         # At this point we have all the data we need. Let's prepare our connection
         # parameters so that we can tell the NetworkManager what is the passphrase.
@@ -249,7 +248,7 @@ class DBusNetworkManager:
     
         # Wait until connection is established. This may take a few seconds.
         NM_ACTIVE_CONNECTION_STATE_ACTIVATED = 2
-        print "Waiting for connection to reach NM_ACTIVE_CONNECTION_STATE_ACTIVATED state ..."
+        print ("Waiting for connection to reach NM_ACTIVE_CONNECTION_STATE_ACTIVATED state ...")
         connection_props = dbus.Interface(
             bus.get_object("org.freedesktop.NetworkManager", connection_path),
             "org.freedesktop.DBus.Properties")
@@ -273,7 +272,7 @@ class DBusNetworkManager:
         ########################################################################
         while True:
             state = connection_props.Get( "org.freedesktop.NetworkManager.Connection.Active", "State")
-            print "Connectoin State:", state
+            print ("Connectoin State:", state)
             if state == NM_ACTIVE_CONNECTION_STATE_ACTIVATED:
                 break
             time.sleep(0.01)
