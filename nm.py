@@ -34,7 +34,7 @@ def list_wifi_aps():
             sec = s[securityIndex:].rstrip()
             return ssid, sec
 
-        return list(map(get_ssid_security(value), outputs[0:]))
+        return list(map(get_ssid_security, outputs[0:]))
     else:
         print('not fonud interface: wlan0.')
 
