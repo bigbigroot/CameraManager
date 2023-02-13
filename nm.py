@@ -23,16 +23,21 @@ def list_wifi_aps():
     res = os.popen('nmcli device wifi list')
     outputs = res.readlines()
     if res.close() is None:
+        bssidIndexs = 0
         ssidIndexs = 0
         ssidIndexe = 0
         securityIndex = 0
-        ssidIndexs = outputs[0].find('SSID')
-        ssidIndexe = outputs[0].find('MODE')
-        securityIndex = outputs[0].find('SECURITY')
+        bssidIndexs = outputs[0].find('BSSID')
+        ssidIndexs = outputs[0][bssidIndexs+5:].find('SSID')
+        ssidIndexe = outputs[0][bssidIndexs+5:].find('MODE')
+        securityIndex = outputs[0][bssidIndexs+5:].find('SECURITY')
         def get_ssid_security(s):
+            isConnected = False
+            if '*' in s[0:bssidIndexs]:
+                isConnected =True
             ssid = s[ssidIndexs:ssidIndexe].rstrip()
             sec = s[securityIndex:].rstrip()
-            return ssid, sec
+            return ssid, sec, isConnected
 
         return list(map(get_ssid_security, outputs[1:]))
     else:
@@ -77,7 +82,7 @@ def get_dns_config_by_if(ifname):
         dnsList = []
         for o in outputs:
             if 'IP4.DNS[{0}]:'.format(i) in o:
-                dns = o.removeprefix('IP4.IP4.DNS[[{0}]:'.format(i)).strip()
+                dns = o.removeprefix('IP4.IP4.DNS[{0}]:'.format(i)).strip()
                 dnsList.append(dns)
                 i += 1 
         return dnsList
