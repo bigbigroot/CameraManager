@@ -28,9 +28,9 @@ def list_wifi_aps():
         ssidIndexe = 0
         securityIndex = 0
         bssidIndexs = outputs[0].find('BSSID')
-        ssidIndexs = outputs[0][bssidIndexs+5:].find('SSID')
-        ssidIndexe = outputs[0][bssidIndexs+5:].find('MODE')
-        securityIndex = outputs[0][bssidIndexs+5:].find('SECURITY')
+        ssidIndexs = outputs[0][bssidIndexs+5:].find('SSID')+bssidIndexs+5
+        ssidIndexe = outputs[0].find('MODE')
+        securityIndex = outputs[0].find('SECURITY')
         def get_ssid_security(s):
             isConnected = False
             if '*' in s[0:bssidIndexs]:
@@ -82,7 +82,7 @@ def get_dns_config_by_if(ifname):
         dnsList = []
         for o in outputs:
             if 'IP4.DNS[{0}]:'.format(i) in o:
-                dns = o.removeprefix('IP4.IP4.DNS[{0}]:'.format(i)).strip()
+                dns = o.removeprefix('IP4.DNS[{0}]:'.format(i)).strip()
                 dnsList.append(dns)
                 i += 1 
         return dnsList
