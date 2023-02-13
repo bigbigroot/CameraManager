@@ -22,8 +22,19 @@ def set_hostname(hostname):
 def list_wifi_aps():
     res = os.popen('nmcli device wifi list')
     outputs = res.readlines()
-    for device in outputs:
-        pass
+    if res.close() is None:
+        ssidIndexs = 0
+        ssidIndexe = 0
+        securityIndex = 0
+        ssidIndexs = outputs[0].find('SSID')
+        ssidIndexe = outputs[0].find('MODE')
+        securityIndex = outputs[0].find('SSID')
+        def get_ssid_security(s):
+            ssid = s[ssidIndexs:ssidIndexe].rstrip()
+            sec = s[securityIndex:].rstrip()
+            return ssid, sec
+
+        return list(map(get_ssid_security(value), outputs[0:]))
     else:
         print('not fonud interface: wlan0.')
 
