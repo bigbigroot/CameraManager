@@ -65,7 +65,7 @@ def get_dns_config_by_if(ifname):
         i = 1
         dnsList = []
         for o in outputs:
-            if 'IP4.IP4.DNS[[{0}]:'.format(i) in o:
+            if 'IP4.DNS[[{0}]:'.format(i) in o:
                 i += 1
                 dns = o.removeprefix('IP4.IP4.DNS[[{0}]:'.format(i)).strip()
                 dnsList.append(dns)
