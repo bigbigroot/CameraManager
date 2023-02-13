@@ -1,288 +1,98 @@
-import dbus
-import time
+from ipaddress import ip_address
+import os
+from sys import prefix
 
-class DBusNetworkManager:
-
-    def __init__(self):
-        pass
-
-    def get_introspection(self):
-        bus = dbus.SystemBus()
-        obj = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-
-        iface = dbus.Interface(obj, dbus_interface='org.freedesktop.DBus.Introspectable')
-    
-        # getting introspection xml
-        m = iface.get_dbus_method("Introspect", dbus_interface=None)
-        return m()
+def get_hostname():
+    res = os.popen('nmcli general hostname')
+    output = res.readline().rstrip()
+    if res.close() is None:
+        return output
+    else:
+        return None
 
 
-    def enable_networking(self, val):
-        """
-        function enables/disables networking depending upon the 'val' argument
-        if val is True, networking is enabled
-        if val is False, networking is disabled
-        """
-        try:
-            bus = dbus.SystemBus()
-            wifi = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-
-            iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.NetworkManager')
-
-            # enabling/disabling networking
-            m = iface.get_dbus_method("Enable", dbus_interface=None)
-            m(val)
-        except:
-            pass
-
-
-    def get_devices(self):
-        bus = dbus.SystemBus()
-        wifi = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-
-        iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.NetworkManager')
-
-        # getting all devices
-        m = iface.get_dbus_method("GetDevices", dbus_interface=None)
-        devs = []
-        for dev in m():
-            devs.append("%s" % dev)
-        return devs
-
-
-    def get_active_connections(self):
-        bus = dbus.SystemBus()
-        wifi = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-
-        iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.DBus.Properties')
-
-        m = iface.get_dbus_method("Get", dbus_interface=None)
-        return [ str(ac) for ac in m("org.freedesktop.NetworkManager", "ActiveConnections") ]
-
-
-    def get_active_connection_info(self, ac_path):
-        bus = dbus.SystemBus()
-        wifi = bus.get_object('org.freedesktop.NetworkManager', ac_path)
-
-        iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.DBus.Properties')
-
-        # creating proxy 'Get' method
-        m = iface.get_dbus_method("Get", dbus_interface=None)
-
-        # getting Id of active connection
-        Id = m("org.freedesktop.NetworkManager.Connection.Active", "Id")
-
-        # getting Type of active connection
-        Type = m("org.freedesktop.NetworkManager.Connection.Active", "Type")
-
-        # getting Uuid of active connection
-        Uuid = m("org.freedesktop.NetworkManager.Connection.Active", "Uuid")
-
-        # getting State of active connection
-        State = m("org.freedesktop.NetworkManager.Connection.Active", "State")
-
-        # NOTE:
-        # this function only returns properties like Id, Type, Uuid, State of an active connection
-        # However, other properties like Dhcp4Config, Dhcp6Config, Ip4Config, Ip6Config etc. can also be obtained
-        return (str(Id), str(Type), str(Uuid), int(State))
-
-
-    def deactivate_connection(self, ac_path):
-        bus = dbus.SystemBus()
-        wifi = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-
-        iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.NetworkManager')
-
-        # getting all devices
-        m = iface.get_dbus_method("DeactivateConnection", dbus_interface=None)
-
-        try:
-            m(ac_path)
-            return True
-        except Exception as exp:
-            print("deactivate_connection() exception :: %s" % exp) 
+def set_hostname(hostname):
+    res = os.popen('nmcli general hostname {0}'.format(hn))
+    if res.close() is None:
+        return True
+    else:
         return False
 
 
-    def get_wifi_access_points_by_dev(self, device_path):
-        bus = dbus.SystemBus()
-        obj = bus.get_object('org.freedesktop.NetworkManager', device_path)
+def list_wifi_aps():
+    res = os.popen('nmcli device wifi list')
+    outputs = res.readlines()
+    for device in outputs:
+        pass
+    else:
+        print('not fonud interface: wlan0.')
 
-        iface = dbus.Interface(obj, dbus_interface='org.freedesktop.NetworkManager.Device.Wireless')
-
-        # getting all wireless access points
-        m = iface.get_dbus_method("GetAccessPoints", dbus_interface=None)
-
-        return [str(ap) for ap in m()]
-
-
-    def get_wifi_access_points(self):
-        aps = None
-        for dev in self.get_devices():
-            try:
-                aps = self.get_wifi_access_points_by_dev(dev)
-
-                # we will get interface 'org.freedesktop.NetworkManager.Device.Wireless'
-                # in one device only so once we get aps for one, no need to continue
-                break
-            except:
-                pass
-        return aps
+        
+def connect_aps(ssid, password):
+    cmd: str
+    if password is None:
+        cmd = 'nmcli device wifi connect {0}'.format(ssid)
+    else:
+        cmd = 'nmcli device wifi connect {0} password {1}'.format(ssid, password)
+    res = os.popen(cmd)
+    if res.close() is None:
+        return True
+    else:
+        return False
 
 
-    def get_access_point_all_info(self, ap_path):
-
-        bus = dbus.SystemBus()
-        obj = bus.get_object('org.freedesktop.NetworkManager', ap_path)
-
-        iface = dbus.Interface(obj, dbus_interface='org.freedesktop.DBus.Properties')
-
-        m = iface.get_dbus_method("GetAll", dbus_interface=None)
-
-        # getting all ppoperties like Ssid, Strength, HwAddress etc.
-        props = m("org.freedesktop.NetworkManager.AccessPoint")
-        for k,v in props.iteritems():
-            print (k,v)
-
-        return props
-
-
-    def get_access_point_brief_info(self, ap_path):
-
-        bus = dbus.SystemBus()
-        obj = bus.get_object('org.freedesktop.NetworkManager', ap_path)
-
-        iface = dbus.Interface(obj, dbus_interface='org.freedesktop.DBus.Properties')
-
-        m = iface.get_dbus_method("Get", dbus_interface=None)
-
-        # getting Ssid
-        dbusArray = m("org.freedesktop.NetworkManager.AccessPoint", "Ssid")
-        Ssid = ''.join([chr(character) for character in dbusArray])
-
-        # getting Strength
-        Strength = m("org.freedesktop.NetworkManager.AccessPoint", "Strength")
-
-        # getting HwAddress
-        HwAddress = m("org.freedesktop.NetworkManager.AccessPoint", "HwAddress")
-
-        # getting Mode
-        Mode = m("org.freedesktop.NetworkManager.AccessPoint", "Mode")
-
-        return (Ssid, int(Strength), str(HwAddress), int(Mode))
+def get_ip_config_by_if(ifname):
+    res = os.popen('nmcli device show {0}'.format(ifname))
+    outputs = res.readlines()
+    if res.close() is None:
+        ip = None
+        prefix: str
+        gateway = None
+        for o in outputs:
+            if 'IP4.GATEWAY:' in o:
+                gateway = o.removeprefix('IP4.GATEWAY:').strip()
+            if 'IP4.ADDRESS[1]:' in o:
+                ip, prefix = o.removeprefix('IP4.ADDRESS[1]:').strip().split('/')
+        return ip, int(prefix), gateway
+    else:
+        return None
 
 
-    def activate_connection(self, con_path, dev_path, obj_path):
-        bus = dbus.SystemBus()
-        wifi = bus.get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
+def get_dns_config_by_if(ifname):
+    res = os.popen('nmcli device show {0}'.format(ifname))
+    outputs = res.readlines()
+    if res.close() is None:
+        i = 1
+        dnsList = []
+        for o in outputs:
+            if 'IP4.IP4.DNS[[{0}]:'.format(i) in o:
+                i += 1
+                dns = o.removeprefix('IP4.IP4.DNS[[{0}]:'.format(i)).strip()
+                dnsList.append(dns)
+        return dnsList
+    else:
+        return None
 
-        iface = dbus.Interface(wifi, dbus_interface='org.freedesktop.NetworkManager')
 
-        # activating connection
-        m = iface.get_dbus_method("ActivateConnection", dbus_interface=None)
-        active_connection = m(con_path, dev_path, obj_path)
+def set_ip_config_by_if(ifname, ip, prefix, gateway):
+    res = os.popen('nmcli device modify {0} ipv4.address {1}/{2}'.format(ifname, ip, prefix))
+    if res.close() is None:
+        res = os.popen('nmcli device modify {0} ipv4.gateway {1}'.format(ifname, gateway))
+        return res.close() is None
+    else:
+        return False
 
-        # on success, active connection object/path is returned
-        return active_connection
 
-    def connect_to_wifi(self, ssid, passphrase):
-        bus = dbus.SystemBus()
-
-        # create dbus interfaces for NetworkManager and Dbus Properties
-        obj = bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
-        iface = dbus.Interface(obj, "org.freedesktop.NetworkManager")
-        iface_props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
-
-        # wireless should be enabled in network manager
-        self.enable_networking(True)
-
-        # Get path to the 'wlan0' device. If you're uncertain whether your WiFi
-        # device is wlan0 or something else, you may utilize iface.GetDevices()
-        # method to obtain a list of all devices, and then iterate over these
-        # devices to check if DeviceType property equals NM_DEVICE_TYPE_WIFI (2).
-        device_path = self.get_wifi_device_path()
-        print ("wireless device path: ", device_path)
-
-        # Connect to the device's Wireless interface and obtain list of access points.
-        device = dbus.Interface(bus.get_object("org.freedesktop.NetworkManager",
-                                            device_path),
-                                "org.freedesktop.NetworkManager.Device.Wireless")
-        accesspoints_paths_list = device.GetAccessPoints()
-
-        # Identify our access point. We do this by comparing our desired SSID
-        # to the SSID reported by the AP.
-        our_ap_path = None
-        for ap_path in accesspoints_paths_list:
-            ap_props = dbus.Interface(
-                bus.get_object("org.freedesktop.NetworkManager", ap_path),
-                "org.freedesktop.DBus.Properties")
-            ap_ssid = ap_props.Get("org.freedesktop.NetworkManager.AccessPoint", "Ssid")
-
-            # Returned SSID is a list of ASCII values. Let's convert it to a proper string.
-            str_ap_ssid = "".join(chr(i) for i in ap_ssid)
-            print (ap_path, ": SSID =", str_ap_ssid)
-
-            if str_ap_ssid == ssid:
-                our_ap_path = ap_path
-                break
-
-        if not our_ap_path:
-            return False, "Access Point not found for SSID '%s'" % ssid
-
-        print ("Access Point for SSID '%s' is '%s' " %  (ssid, our_ap_path))
-
-        # At this point we have all the data we need. Let's prepare our connection
-        # parameters so that we can tell the NetworkManager what is the passphrase.
-        connection_params = {
-            "802-11-wireless": {
-                "security": "802-11-wireless-security",
-            },
-            "802-11-wireless-security": {
-                "key-mgmt": "wpa-psk",
-                "psk": passphrase
-            },
-        }
-
-        # Establish the connection.
-        settings_path, connection_path = iface.AddAndActivateConnection( connection_params, device_path, our_ap_path)
+def dhcp_client(ifname, isAuto: bool) -> bool:
+    mode: str
+    if isAuto:
+        mode = 'auto'
+    else:
+        mode = 'manual'
+    res = os.popen('nmcli device modify {0} ipv4.method {1}'.format(ifname, mode))
+    return res.close() is None
     
-        # Wait until connection is established. This may take a few seconds.
-        NM_ACTIVE_CONNECTION_STATE_ACTIVATED = 2
-        print ("Waiting for connection to reach NM_ACTIVE_CONNECTION_STATE_ACTIVATED state ...")
-        connection_props = dbus.Interface(
-            bus.get_object("org.freedesktop.NetworkManager", connection_path),
-            "org.freedesktop.DBus.Properties")
-        state = 0
 
-        ########################################################################
-        #                                                                      #
-        # Loop forever until desired state is detected.                        #
-        #                                                                      #
-        # A timeout should be implemented here, otherwise the program will     #
-        # get stuck if connection fails.                                       #
-        #                                                                      #
-        # IF PASSWORD IS BAD, NETWORK MANAGER WILL DISPLAY A QUERY DIALOG!     #
-        # This is something that should be avoided, but I don't know how, yet. #
-        #                                                                      #
-        #                                                                      #
-        # Also, if connection is disconnected at this point, the Get()         #
-        # method will raise an org.freedesktop.DBus.Error.UnknownMethod        #
-        # exception. This should also be anticipated.                          #
-        #                                                                      #
-        ########################################################################
-        while True:
-            state = connection_props.Get( "org.freedesktop.NetworkManager.Connection.Active", "State")
-            print ("Connectoin State:", state)
-            if state == NM_ACTIVE_CONNECTION_STATE_ACTIVATED:
-                break
-            time.sleep(0.01)
-
-        return True, "Connection established successfully"
-
-    def get_wifi_device_path(self):
-        for dev in self.get_devices():
-            try:
-                aps = self.get_wifi_access_points_by_dev(dev)
-                return dev
-            except:
-                pass
+def set_dns_config_by_if(ifname, dns):
+    res = os.popen('nmcli device modify {0} ipv4.dns {1}'.format(ifname, dns))
+    return res.close() is None
