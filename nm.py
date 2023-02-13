@@ -28,13 +28,13 @@ def list_wifi_aps():
         securityIndex = 0
         ssidIndexs = outputs[0].find('SSID')
         ssidIndexe = outputs[0].find('MODE')
-        securityIndex = outputs[0].find('SSID')
+        securityIndex = outputs[0].find('SECURITY')
         def get_ssid_security(s):
             ssid = s[ssidIndexs:ssidIndexe].rstrip()
             sec = s[securityIndex:].rstrip()
             return ssid, sec
 
-        return list(map(get_ssid_security, outputs[0:]))
+        return list(map(get_ssid_security, outputs[1:]))
     else:
         print('not fonud interface: wlan0.')
 
@@ -76,10 +76,10 @@ def get_dns_config_by_if(ifname):
         i = 1
         dnsList = []
         for o in outputs:
-            if 'IP4.DNS[[{0}]:'.format(i) in o:
+            if 'IP4.DNS[{0}]:'.format(i) in o:
                 dns = o.removeprefix('IP4.IP4.DNS[[{0}]:'.format(i)).strip()
                 dnsList.append(dns)
-                i += 1
+                i += 1 
         return dnsList
     else:
         return None
